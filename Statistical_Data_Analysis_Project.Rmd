@@ -1,0 +1,649 @@
+---
+title: "Statistical Data Analysis Project(Stat 9004)"
+author: "Ugonabo Nenechi Winifred"
+date: "4/27/2021"
+output:
+  html_document: default
+  word_document: default
+---
+
+```{r  packages and setup, message=FALSE,warning=FALSE}
+library(readr)
+library(caret)
+library(MASS)
+library(tidyverse)
+library(leaps)
+library(car)
+treeg <- read_csv("C:/Users/soar/Desktop/treeG.csv")#Load in tree data set
+attach(treeg)
+```
+
+```{r include=TRUE}
+summary(treeg)
+head(treeg)
+```
+(a)	Make a numerical and graphical summary of the data, commenting on the results. 
+Include: boxplots, histograms, scatterplot and the correlation coefficient.
+```{r include=TRUE}
+windows(10,10)#boxplot of volume and Diameter
+par(mfrow=c(2,2))
+boxplot(treeg$Vol, xlab="Volume")
+boxplot(treeg$Diam, xlab="Diameter")
+```
+From the boxplot we can see a lot of outliers in the volume parameter (this is down to skew)
+also from the box we can see three outliers in Diameter (this may be down to skew)
+
+```{r include=TRUE}
+panel.his <- function(x, ...)#Using the pairs plot to look at scatter plot,histogram and correlation coefficient
+{
+  usr <- par("usr"); on.exit(par(usr))
+  par(usr = c(usr[1:2], 0, 1.5) )
+  h <- hist(x, plot = FALSE)
+  breaks <- h$breaks; nB <- length(breaks)
+  y <- h$counts; y <- y/max(y)
+  rect(breaks[-nB], 0, breaks[-1], y, col = "cyan", ...)
+}
+
+
+## function to put correlations on the upper panels,
+panel.corr <- function(x, y, digits = 2, prefix = "", cex.cor, ...)
+{
+  usr <- par("usr"); on.exit(par(usr))
+  par(usr = c(0, 1, 0, 1))
+  r <- (cor(x, y))
+  txt <- format(c(r, 0.123456789), digits = digits)[1]
+  txt <- paste0(prefix, txt)
+  if(missing(cex.cor)) cex.cor <- 2
+  text(0.5, 0.5, txt, cex = cex.cor)
+}
+## pairs plot 
+windows(10,10)
+pairs(treeg, diag.panel = panel.his, upper.panel = panel.corr)
+
+plot(Vol ~ Diam, data = treeg)
+cor(treeg$Vol, treeg$Diam)
+```
+
+from the histogram of response variable, the data appears to be  skewed to the right.
+From the plot we can see that there is a positive linear relationship between Diam and Vol.
+From the correlation coefficient in which we got 0.848 there seem to be a strong positive linear relationship between Diameter and Volume of the tree trunk.
+We noticed two extreme outliers,this could also be the reason for the high correlation that we got.
+We can see a positive linear relationship which means as Diameter increases, Volume of tree trunk also increases.
+
+(b)	Fit a model of the form and interpret the value of b1 . Note that you will need to 
+consider the results from your exploratory data analysis in part (a) to fit a valid model.
+
+Fitting in a linear model directly might not be appropriate first we need to transform the response 
+variable using a log transformation but first it will be helpful to examine the model without transformation.
+
+```{r include=TRUE}
+tree_model<-lm(Vol ~ Diam, data = treeg)#fitting the model without transformation
+```
+
+```{r include=TRUE}
+## summary output
+summary(tree_model)
+plot(tree_model)
+```
+
+```{r include=TRUE}
+#fitting in a linear model to the transformed volume variable (log(Vol)~Diam)
+plot(log(Vol) ~ Diam, data = treeg)
+hist(log(treeg$Vol))
+```
+The histogram seems to appear fairly normal after log transformation
+```{r include=TRUE}
+tree_model2<- lm(log(Vol)~Diam, data=treeg)
+summary(tree_model2)
+```
+Fitted model is of form log(Vol)=-3.3816+8.4457Diam+error
+extracting coefficients from the output, the regression equation is
+log(Vol) =  -3.3816 + 8.4857 x Diameter
+
+to re-express the model in terms of the original variables take exponential of both sides 
+exp(log(Vol)) = exp(-3.3816 + 8.4857 x Diameter)
+Volume = exp(-3.3816)*exp(+8.4857 x Diameter)
+Volume = 0.033993*exp(+8.4857 x Diameter)
+Where -3.3816 is the intercept and 8.4457 is the slope
+Interpreting our slope which is 8.4857 as thus:
+Increase in diameter by 1unit corresponds to an increase of 8.4457 in volume or
+Each percentage increase in diameter corresponds to an increase of 8.4457 in volume
+
+(c)	Calculate a 95% confidence interval for the b1 coefficient.
+```{r include=TRUE}
+tree_model2$coefficients[2] #Estimate for the slope(extracting the slope coefficient)
+# 95% confidence interval for b1 coefficient(for the mean Diam )
+```
+
+
+```{r include=TRUE}
+new <- data.frame(Diam = 8.45)
+predict(tree_model, new, interval = 'confidence', se.fit = T)
+```
+
+From the result there is a large interval between the upper bound(63.539) and
+lower bound(45.11048) so we have a large confidence interval here.Therefore there is a 
+large standard error associated with our fitted value(4.5939) for the mean
+We got residual standard deviation as 0.5655(residual.scale)
+```{r include=TRUE}
+predict(tree_model, new, interval = 'prediction', se.fit = T)#predicted value for the individual Diam
+```
+We got the same answer for standard error associated with fitted value as above,the same
+value for degrees of freedom and the same value for residual standard deviation there is only a slight
+difference in the upper and lower bound therefore a slight increase in confidence interval as compared to that of mean of fitted value.
+
+(d)	Test the hypothesis:
+
+Ho: B1=0 Null hypothesis states that the coefficient is equal to zero
+Ho: B1!=0 Alternative hypothesis states that the coefficient is not equal to zero
+
+
+What do the results of the hypothesis test imply for the regression model?
+
+```{r include=TRUE}
+summary(tree_model)#summary output
+```
+From the result we got that the p-value corresponding to slope(b1) is 4.02e-15
+Therefore there is a strong evidence against the Null hypothesis that the slope(b1=0)
+We therefore reject the Null hypothesis which implies that x(Diameter) is explaining
+the variability in y(Volume) we therefore conclude there is a linear relationship between x(Diameter)
+y(Volume).
+
+(e)	Plot the regression line onto a scatterplot of the data and plot a 95% prediction band.
+```{r include=TRUE}
+#plotting the regression line
+# 95% confidence bands for mean and individual values
+## creating a sequence of values for the explanatory variable (Diameter)
+Diam_grid = seq(min(Diam), max(Diam), by = 0.01)#creating a vector of Diam_grid
+
+```
+
+```{r include=TRUE}
+## create a set of 95% confidence intervals at each point in Diam_grid
+dist_ci_band = predict(tree_model2, 
+                       newdata = data.frame(Diam = Diam_grid), 
+                       interval = "confidence", level = 0.95)#stores output from predict function for
+```
+
+```{r include=TRUE}
+#each value in Diam_grid
+## create a set of 95% prediction intervals at each point in Diam_grid
+dist_pi_band = predict(tree_model2, 
+                       newdata = data.frame(Diam = Diam_grid), 
+                       interval = "prediction", level = 0.95)
+```
+
+```{r include=TRUE}
+## plotting scatter graph of Diameter against Volume
+windows(5.5)
+plot(log(Vol) ~ Diam, xlab = "Diameter (metre)",  ylab = "Volume (metre cubed)",  pch  = 20,
+     cex  = 0.75, ylim = c(min(dist_pi_band), max(dist_pi_band)))
+## plotting the regression line    
+abline(tree_model2)
+## plot confidence and prediction bands using the lines command
+lines(Diam_grid, dist_ci_band[,"lwr"], col = "blue", lwd = 1, lty = 2)
+lines(Diam_grid, dist_ci_band[,"upr"], col = "blue", lwd = 1, lty = 2)
+lines(Diam_grid, dist_pi_band[,"lwr"], col = "red", lwd = 1, lty = 3)
+lines(Diam_grid, dist_pi_band[,"upr"], col = "red", lwd = 1, lty = 3)
+
+```
+
+```{r include= TRUE}
+## plotting the regression line    
+
+```
+
+
+```{r include= TRUE}
+## plot confidence and prediction bands using the lines command
+
+```
+95% confidence interval band shown in blue is narrower because its for fitted mean value
+95% prediction band shown in red is wider which is for fitted individual value
+
+(f)	Plot the standardized residuals against the fitted values and identify any outliers.
+
+```{r include=TRUE}
+qqPlot(tree_model2)
+
+stdres <- rstandard(tree_model2)
+
+plot(stdres~fitted(tree_model2), xlab = "Volume (m3) (fitted values)", ylab =" standardised residuals")
+abline(0,0)
+```
+
+```{r include=TRUE}
+#plot(tree_model2)
+```
+points on Q-Qplot now lies along the straight line apart from few outliers 
+We identified two potential outliers at point [27] which corresponds to o.4353 diameter and 
+volume of 1.0979 and point [39] which corresponds to 0.2508 diameter and volume of 0.2601
+
+(g)	Plot the leverage of each case and identify any observations that have high leverage.
+
+```{r include=TRUE}
+## calculate leverage
+plot(tree_model2)
+h<- lm.influence(tree_model2)$hat#(h=2(k+1)/n) where n= 56 observations and k+1=2...h=4/56=0.0714
+windows(5,5)
+plot(h, xlab = "Observation", ylab = "Leverage")
+abline(h=0.0714)
+#identify(h,n=3) running code with this function in my RMD takes a long time
+```
+observation at points [39],[23]and [43] have the highest leverage
+
+(h)	Identify the observation that has the largest influence on the estimate of the b1 
+coefficient. Explain why this observation has a large influence.
+```{r include=TRUE}
+#checking regression model excluding observation 39
+tree_model4 <-lm(log(Vol) ~ Diam, data = treeg[-39,])
+summary(tree_model4)
+summary(tree_model2)
+```
+
+```{r include=TRUE}
+#checking regression model excluding observation 43
+tree_model5 <-lm(log(Vol) ~ Diam, data = treeg[-43,])
+summary(tree_model5)
+```
+
+
+```{r include=TRUE}
+#checking regression model excluding observation 23
+tree_model6 <-lm(log(Vol) ~ Diam, data = treeg[-23,])
+summary(tree_model6)
+```
+The three points above the leverage lines were each excluded from the model to estimate the one 
+with the largest influence on b1 coefficient.
+From the three models plotted, the difference between original model(which includes the point) and the
+new model excluding the points was calculated and tree_model4 has the largest difference in its
+b1 coefficient this corresponds to point 39 therefore point 39 (corresponding to.2508 diameter and volume of 0.2601) has the largest influence on b1 coefficient.
+```{r message=FALSE,results="hide"}
+crime_2B <- read_csv("C:/Users/soar/Desktop/crime_2B.csv")
+```
+Question 2
+
+(a)	Make a numerical and graphical summary of the data, commenting on the results. 
+Include: boxplots, histograms, scatterplots and correlation coefficients.
+```{r include=TRUE}
+head(crime_2B)
+summary(crime_2B)
+```
+
+```{r include=TRUE}
+windows(10,10)
+par(mfrow=c(2,3))
+boxplot(crime_2B$crime, xlab="crime")
+boxplot(crime_2B$police, xlab="police")
+boxplot(crime_2B$school_25, xlab="school over 25 years")
+boxplot(crime_2B$unemployed_16, xlab="unemployed(16-19) years")
+boxplot(crime_2B$college, xlab="college(18-25) years")
+boxplot(crime_2B$college_25, xlab="college(+25) years")
+```
+From the plot we can see a number of outliers in police, one outlier in unemployed_16
+Two potential outlier in  college.
+One potential outlier in college_25.
+```{r include=TRUE}
+## Pairs plot
+panel.his <- function(x, ...)#Using the pairs plot to look at scatter plot,histogram and correlation coefficient
+{
+  usr <- par("usr"); on.exit(par(usr))
+  par(usr = c(usr[1:2], 0, 1.5) )
+  h <- hist(x, plot = FALSE)
+  breaks <- h$breaks; nB <- length(breaks)
+  y <- h$counts; y <- y/max(y)
+  rect(breaks[-nB], 0, breaks[-1], y, col = "cyan", ...)
+}
+
+
+## function to put correlations on the upper panels,
+panel.corr <- function(x, y, digits = 2, prefix = "", cex.cor, ...)
+{
+  usr <- par("usr"); on.exit(par(usr))
+  par(usr = c(0, 1, 0, 1))
+  r <- (cor(x, y))
+  txt <- format(c(r, 0.123456789), digits = digits)[1]
+  txt <- paste0(prefix, txt)
+  if(missing(cex.cor)) cex.cor <- 2
+  text(0.5, 0.5, txt, cex = cex.cor)
+}
+## pairs plot 
+windows(10,10)
+pairs(crime_2B, diag.panel = panel.his, upper.panel = panel.corr)
+```
+From the graph the most striking relationship is between school_25 and college_25 with positive correlation coefficient of 0.66 College and college_25 with a positive correlation coefficient of 0.57
+School_25 and unemployed_16 with a negative correlation of -0.45(as school_25 increases unemployment_16 decreases)
+crime and unemployed_16 with a positive correlation of 0.44(As crime increases, unemployment_16 increases)
+From the histogram plots there is no skewed variable.
+
+(b)	Fit the model :
+crime = b_0 + b_1police + b_2school_25 + b_3unemployed_16 + b_4college + b_5college_25 + e
+```{r include=TRUE}
+crime_model<-lm(crime~police + school_25 + unemployed_16 + college + college_25, data = crime_2B)
+summary(crime_model)
+```
+fitted model
+crime=b_0+b_1police+b_2school_25+b_3unemployed_16+b_4college+b_5college_25+e
+
+crime = 615.4157 + 0.8165police - 6.6661school_25 + 16.3047unemployed_16 - 0.4567college + 11.3614college_25 + e
+
+where b0 is the intercept and b1 to b5 is the coefficient of the independent variables respectively.
+
+
+(i)	Interpret the coefficient for school_25.
+
+Interpreting our coefficient of school_25 which 11.3614 as thus:
+Increase in school_25 by 1unit corresponds to an increase of 11.3614 in crime while
+other remaining independent variables are held constant. or
+the expected change in crime per unit change in school_25 when all the 
+remaining independent variables are held constant is 11.3614.
+
+
+(ii)	Calculate the variance inflation factors for this model and discuss their implications
+for collinearity in the model.
+
+```{r include=TRUE}
+# variance inflation factors (VIFs) ##
+vif(crime_model)
+```
+
+The Variance Inflation Factors lie between 1 and 3 indicating that collinearity is not  having a large impact on the coefficient estimates for this model.
+Non of explanatory variables have a Variance Inflation Factor (VIFs) that exceeds 5 therefore we can conclude that no serious collinearity exist between the explanatory variables.
+
+
+(iii)	Create a partial regression plot to examine relationship between college and crime 
+adjusted for police, school_25, unemployed_16, and college_25. 
+```{r include=TRUE}
+#we first fit the full model
+crime_model<-lm(crime~college+police + school_25 + unemployed_16 + college_25, data = crime_2B)
+m_crime<-lm(crime~police + school_25 + unemployed_16 + college_25, data = crime_2B) #crime is explained by other independent variables on the y axis
+```
+
+```{r include=TRUE}
+m_college<-lm(college~police + school_25 + unemployed_16 + college_25, data = crime_2B)#college eplained
+#by other independent variables
+
+```
+
+```{r include=TRUE}
+# plot residuals
+windows(5,5)
+plot(m_crime$res ~ m_college$res, xlab = "residuals college ~ others", 
+     ylab = "residuals crime ~ others")
+```
+Fitting a regression model to the residuals
+The slope of the regression line is the estimate for the beta coefficient associated with ddpi in the model containing both pop15 and ddpi.
+```{r include=TRUE}
+m_res <-lm(m_crime$res ~ m_college$res)
+plot(m_res)
+abline(m_res)
+summary(m_res)
+```
+x axis shows the variation in college that is not explained by other Independent variables
+y axis of the plot shows the variation in crime that is not explained by other Independent variables
+From the output relationship between college and crime adjusted for police, school_25, 
+unemployed_16, and college_25 is -0.4567. 
+
+Test the hypothesis:  
+H0: B_1=B_2=B_3=B_4=B_5=0(there is no association between any of the explanatory variable and response variable)
+HA: at least one of the B_i!=0(atleast one of the beta coefficients is not equal to zero)
+What do the results of the hypothesis test imply for the regression model?
+```{r include=TRUE}
+## fit the full model using all four predictors ##
+crime_model<-lm(crime~police + school_25 + unemployed_16 + college + college_25, data = crime_2B)
+summary(crime_model)
+```
+
+```{r include=TRUE}
+## Write down the fitted model 
+crime_model<-lm(crime~police + school_25 + unemployed_16 + college + college_25, data = crime_2B)
+summary(crime_model)
+```
+
+Examining the output for summary of (crime_model), we see that the global F-statistic 
+is F(5, 59) = 4.439 and p =00169, In this instance we may reject the null hypothesis at 
+the 5% significant level atleast one of the beta coefficients is not equal to zero. 
+We conclude that at least one of the predictors is associated with crime.
+
+(v)	Assess the fit of the model using diagnostic plots, commenting on the assumptions of 
+the regression model and influential points.
+```{r include=TRUE}
+windows(10,10)
+par(mfrow=c(2,2))
+plot(crime_model)
+```
+Residual seems to follow a normal distribution from the Normal Q-Q plot though a few points are off the diagonal line.
+The plot of residuals vs. fitted shows that the residuals seems to be random.
+From the scale-location plot we can see a constant variance.
+```{r include=TRUE}
+h<- lm.influence(crime_model)$hat#h=0.182
+windows(5,5)
+plot(h, xlab = "Observation", ylab = "Leverage")
+abline(h=0.182)
+#identify(h,n=3) running code with this in RMD takes a long time.
+```
+We have influential points at [51],[39],[47],[18]
+
+(c)	Use the predict function to calculate the expected crime rate when police = 40, 
+school_25 = 70, unemployed_16= 15, college= 25 and college_25 =18
+
+Equation of crime_model is given as thus:
+crime = 615.4157 + 0.8165police - 6.6661school_25 + 16.3047unemployed_16 - 0.4567college + 11.3614college_25 
+
+Calculating the expected crime rate:
+crime = 615.4157 + 0.8165*40 - 6.6661*70 + 16.3047*15 - 0.4567*25 + 11.3614*18
+crime = 619.12 which is = 619
+
+(d)	Compare the full model to the model where unemployed_16 and college are excluded using 
+50 repeats of 10-fold cross validation.
+Which model would you choose to predict crime rate?
+```{r include=TRUE}
+#full model
+crime_model
+#model with exclusion
+crime_model1<-lm(crime~police + school_25 + college_25, data = crime_2B)
+summary(crime_model1)
+#Comparing the two models(full model and model with exclusion) using 50 repeats of 10-fold cross validation
+```
+
+```{r include=TRUE}
+# Define training control
+set.seed(123)
+train.control <- trainControl(method = "repeatedcv", 
+                              number = 10, repeats = 50)
+```
+
+```{r include=TRUE}
+# Train the model
+model1 <- train(crime ~ ., data = crime_2B, method = "lm",
+               trControl = train.control)
+```
+
+```{r include=TRUE}
+# Summarize the results
+print(model1)
+```
+
+```{r include=TRUE}
+#comparing the second model
+# Define training control
+set.seed(123)
+train.control <- trainControl(method = "repeatedcv", 
+                              number = 10, repeats = 50)
+```
+
+
+```{r include=TRUE}
+# Train the model
+model2 <- train(crime ~ police + school_25 + college_25, data = crime_2B, method = "lm",
+               trControl = train.control)
+```
+
+```{r include=TRUE}
+# Summarize the results
+print(model2)
+```
+Comparing the two models using model performance metrics
+1.R-squared (R2), representing the squared correlation between the observed outcome values and 
+the predicted values by the model. The higher the adjusted R2, the better the model.
+
+2.Root Mean Squared Error (RMSE), which measures the average prediction error made by the model in 
+predicting the outcome for an observation. That is, the average difference between 
+the observed known outcome values and the values predicted by the model. The lower the RMSE, 
+the better the model.
+
+3.Mean Absolute Error (MAE), an alternative to the RMSE that is less sensitive to outliers.
+It corresponds to the average absolute difference between observed and predicted outcomes. 
+The lower the MAE, the better the model
+
+From this three performance metrics model 1 has R2 of 0.26518,RMSE of 169.0192 and MAE of 145.1677
+model2 has R2 of 0.276616,RMSE of 170.867 and MAE of 143.1004 from our comparison 
+model2 is the better model which is the model with less parameter.Reasons given below.
+1.Higher R2
+2.Lesser MAE and this MAE is less sensitive to outlier which our data contains
+3.Less parameters because the data size is small,less predictor variable is preferred
+
+
+
+QUESTION NO 3
+A search algorithm(Backward elimination)is used to find the best model that best fits the 
+data according to some criteria(AIC,p-value).These criteria assigns score to each model and then 
+chooses the model with the best score.We will use the mtcars data set to implement this algorithm
+(automatic method).Backward elimination starts with all predictors in the model (full model), iteratively removes the least contribute predictors, and stops when you have a model where all predictors are statistically significant.
+
+AIC = $2k-2\ln(L)$ 
+where $k$ is the number of parameters in the model and $L$ is the maximum value of the 
+likelihood function of the model.It provides a means for model selection.In the context of backwards 
+step-wise regression, at each step a variable is dropped and the AIC is calculated for each model, 
+if AIC(larger model) < AIC(smaller model) then the variable is retained. 
+
+I am going to explore this assignment question 3 using built in R data mtcars 
+```{r message=FALSE,results="hide"}
+data("mtcars")#loading our data
+head(mtcars)
+```
+
+```{r include=TRUE}
+# Fit the full linear model 
+#we are trying to predict mpg using other Independent variables
+full_model<- lm(mpg ~ ., data = mtcars)
+summary(full_model)
+```
+From the output we can see no independent variable is significant because of too many variables and
+multicollinearity a backward stepwise regression is performed to chose the important variables.
+Stepwise regression model
+```{r include=TRUE}
+step_model <- stepAIC(full_model, direction = "backward")
+summary(step_model)
+```
+Explaining the step by step how the algorithm is implemented to make selection
+AIC which is Akaike Information criterion,start: AIC = 70.9
+we have 10 variables and the first output shows the ranking of what happens if we take one variable out
+The lower the AIC value the better the model,if we take out cyl the AIC drops to 68.915,if we take out
+vs it drops at 68.932 and so on remember the aim is to get a lower AIC,lower than our start AIC of 70.9
+If we leave the model alone the AIC is at 70.898 or 70.9,if we take out am AIC value increases more than 
+start AIC which is 71.108 and we do not want that.
+
+Second stage: cyl is being taken out,AIC model is 68.92 if we take out vs it drops to 66.973 now we can 
+notice that qsec has gone below none(ie those with higher AIC than start AIC).
+
+Third stage:vs is being taken out,AIC model is reduced to 66.97,looking at carb variable if we take that
+out,AIC further reduces to 65.121.
+
+Fourth stage: carb is taken out AIC model is 65.12 if we take out gear,it further reduces to 63.457
+
+Fifth stage: gear is taken out, AIC model is now 63.46, if we take out drat it drops to 62.162
+
+sixth stage:drat is taken out, AIC model is now 62.16,if we ,take out disp it will drop to 61.515
+
+Seventh stage: disp is taken out, AIC model is now 61.52 if we take out hp it will drop to 61.307,from 
+this we can see that the remaining models will increase our AIC if we take them out and we do not want
+that therefore what we have left is our important variables.
+
+eight stage: AIC IS 61.31
+
+From our summary model, all the remaining three variables are now statistically significant at 0.05 significant level.
+
+Question c
+Use 10-fold cross validation with step-wise regression to select a final model based on minimising 
+the RMSE. Does using cross-validation prevent spurious conclusions?
+
+Answering the question that follows
+```{r include=TRUE}
+# Set seed for reproducibility
+set.seed(123)
+# Set up repeated k-fold cross-validation
+train.control <- trainControl(method = "cv", number = 10)
+```
+
+```{r include=TRUE}
+#For our analysis we set:
+  k =20   # 20 explanatory variables
+
+# we explore the cases where there are 0, 1, 5 and 10 variables that are  
+# linearly related to the outcome
+k_ln = c(0,1,5,10)
+
+# we examine the effect of changing the strength of the beta coefficients that  
+# are linearly related to the response Y. 
+B_mag = c(0.01, 0.05, 0.1, 0.5,1,2)
+n = 500  # 500 observations in each dataset
+reps = 100 # 100 repetitions of each case
+
+# Train the model
+# For each combinaton of parameters, create the population beta coefficients
+for(j in k_ln) {
+  for(b in B_mag){
+    
+    B <- if(j == 0) rep(0, k) else c(rep(b,j),rep(0,k-j))
+    
+    # For each simulation and combination of parameters, create the explanatory variables  
+    # and response variable and then fit a linear regression model  
+    
+    for(m in 1:reps) {
+      # create matrix containing explanatory variables, randomly sampled from a   
+      # standard normal disribution  
+      X <- matrix(rnorm(n*k), nrow=n)
+      # create response variable Y = BX +Error   
+      # (Error sampled randomly from a standard normal distribution)
+      Y  <- X%*%B + matrix(rnorm(n),nrow=n) 
+      DF <- cbind(Y,X) # create dataframe
+      DF<- as.data.frame(DF)
+      # name columns
+      colnames(DF)<-c("Y","X1","X2","X3","X4","X5","X6","X7","X8","X9","X10","X11","X12",  
+                      "X13","X14","X15","X16","X17","X18","X19","X20")
+      
+        
+    }
+  }
+}
+
+step.model <- train(Y ~., data = DF,
+                    method = "leapBackward", #This performs backward selection (method = "leapBackward")
+                    tuneGrid = data.frame(nvmax = 1:20),
+                    trControl = train.control
+                    )
+                    
+step.model$results
+
+```
+The output above shows different metrics and their standard deviation for comparing the accuracy of the 5 best models. Columns are:
+
+nvmax: the number of variable in the model. 
+RMSE and MAE are two different metrics measuring the prediction error of each model. The lower the RMSE and MAE, the better the model.
+Rsquared indicates the correlation between the observed outcome values and the values predicted by the model. The higher the R squared, the better the model.
+```{r include=TRUE}
+
+step.model$bestTune
+#This indicates that the best model is the one with nvmax = 1 variable. 
+#The function summary() reports the best set of variables for each model size.
+summary(step.model$finalModel)#An asterisk specifies that a given variable is included in the corresponding model. For example, it can be seen that the best model is variable 1
+```
+Does using cross-validation prevent spurious conclusion?
+The answer is yes, using cross-validation when building a model can make an important contribution 
+to increasing the reliability of replicability.It is an important evaluation strategy in 
+predictive modelling.
+```{r include=TRUE}
+
+```
+

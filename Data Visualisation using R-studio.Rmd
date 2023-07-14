@@ -1,0 +1,426 @@
+---
+title: "Assignment1 Data Visualisation"
+author: "Ugonabo Nenechi Winifred _R00194775"
+date: "3/5/2021"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r  packages and setup, message=FALSE,warning=FALSE}
+library(readr)
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(gridExtra)
+library(extrafont)
+library(corrplot)
+library(magrittr)
+library(tidyverse)
+library(plotly)
+library(DT)
+library(RColorBrewer)
+library(ggmap)
+library(ggthemes)
+library(scales)
+library(ggridges)
+```
+The first data set we are going to analyse is gotten from students in Poland,it contains
+33 variables and 649 observations in which there are 17 categorical variables(factor variables) and 16 quantitative variables which are all related to the student's social-life and
+how their social life affect their final grades.
+```{r echo=TRUE,results='hide',message=FALSE,warning=FALSE}
+student_por <- read_csv("C:/Users/soar/Desktop/student-por.csv")
+glimpse(student_por)
+M<-cor(student_por[c(3,7,8,13,14,24:33)])
+corrplot(M,method="number")#Checking the correlation of each variable we observed the highest
+#correlation between studytime,mothers education with that of Grade 1,Grade2,Grade 3
+# Scatterplot
+```
+Checking the correlation of each variable we observed the highest
+correlation between studytime,mothers education and fathers education with that of Grade 1,Grade2,Grade 3
+Lets visualise using a Scatterplot
+```{r include=TRUE,warning=FALSE,message=FALSE,ECHO=FALSE}
+theme_set(theme_bw())  # pre-set the between theme.
+g <- ggplot(student_por, aes(studytime, G1))
+g +geom_jitter(width = .5, size=1)+ labs( 
+       y="Grade One", 
+       x="Study Time", 
+       title="Correlation of Study Time Vs Grade")#We can notice a weak positive correlation
+
+```
+
+```{r warning=FALSE,message=FALSE,echo=FALSE}
+g <- ggplot(student_por, aes(Medu, G1))
+g +geom_jitter(width = .5, size=1)+ labs( 
+  y="Grade One", 
+  x="Study Time", 
+  title="Correlation of Mothers Education Time Vs Grade")#We can notice a weak positive correlation
+
+```
+
+```{r include=FALSE}
+#Now lets explore how daily alcohol consumption,Fathers education could affect all the student grades
+student_por$Dalc <- as.factor(student_por$Dalc)      
+student_por$Dalc <- mapvalues(student_por$Dalc, 
+                              from = 1:5, 
+                              to = c("Very Low", "Low", "Medium", "High", "Extreme"))
+
+student_por$Walc <- as.factor(student_por$Walc)      
+student_por$Walc <- mapvalues(student_por$Walc, 
+                              from = 1:5, 
+                              to = c("Very Low", "Low", "Medium", "High", "Extreme"))
+
+student_por$Medu <- as.factor(student_por$Medu)      
+student_por$Medu <- mapvalues(student_por$Medu, 
+                              from = 0:4, 
+                              to = c("No education", "level one", "level two", "level three", "level four"))
+
+student_por$Fedu <- as.factor(student_por$Fedu)      
+student_por$Fedu <- mapvalues(student_por$Fedu, 
+                              from = 0:4, 
+                              to = c("No education", "level one", "level two", "level three", "level four"))
+
+```
+
+Now lets explore how daily alcohol consumption,Fathers education could affect all the student grades
+```{r warning=FALSE,message=FALSE,echo=FALSE}
+ x1 <-  ggplot(student_por, aes(x=Dalc, y=G1, fill=Dalc))+geom_violin(fill="blue")+
+  geom_boxplot(width = .2, 
+               fill = "orange",
+               outlier.color = "orange",
+               outlier.size = 2)+
+  theme_bw()+
+  theme(legend.position="none")+
+  xlab("Alcohol consumption")+
+  ylab("Grade")+
+  ggtitle("First Grade")
+ 
+
+x2 <- ggplot(student_por, aes(x=Dalc, y=G2, fill=Dalc))+geom_violin(fill = "blue")+
+  geom_boxplot(width = .2, 
+               fill = "orange",
+               outlier.color = "orange",
+               outlier.size = 2)+
+  theme_bw()+
+  theme(legend.position="none")+
+  xlab("Alcohol consumption")+
+  ylab("Grade")+
+  ggtitle("Second Grade")
+
+x3 <- ggplot(student_por, aes(x=Dalc, y=G3, fill=Dalc))+geom_violin(fill="blue")+
+  geom_boxplot(width = .2, 
+               fill = "orange",
+               outlier.color = "orange",
+               outlier.size = 2)+
+  theme_bw()+
+  theme(legend.position="none")+
+  xlab("Alcohol consumption")+
+  ylab("Grade")+
+  ggtitle("Third Grade")
+
+grid.arrange(x1,x2,x3,ncol=3)
+```
+From the plot we can notice that those that consume very low alcohol daily get the highest grade
+but the grade distribution becomes consistent as one consumes more alcohol on daily basis
+though there are few outliers to consider.
+let us visualise if Mothers education has an effect on students grade
+```{r warning=FALSE,message=FALSE,echo=FALSE}
+ggplot(student_por, aes(x = G1)) +
+  geom_histogram(fill = "forestgreen",
+                 color = "white") +
+  facet_wrap(~Medu, ncol = 1) +
+  labs(title = "Grade histograms by Mothers Education level")+
+  xlab("Grade score")
+```
+From the graph we can see that children with uneducated mothers perform badly
+We can conclude that Mothers Education,Students study time and student alcohol intake has a 
+minimal role to play in influencing students Grade.
+
+```{r warning=FALSE,message=FALSE,echo=FALSE}
+#lets compare how fathers education affect students grade using a density ridge plot
+ggplot(student_por, aes(x=G3, y=Fedu, fill=Fedu))+
+  geom_density_ridges()+
+  theme_bw()+
+  theme(legend.position="none")+
+  ggtitle("Fathers Education Vs Student Grade")+
+  ylab("Fathers Education")+
+  xlab("Students Grade")
+```
+Fathers education slightly affects the student performance in school.The children of Fathers with level three and four education,have a higher ridge(ridge peakness is higher) at marks between 15 to 20 unlike that of children with uneducated fathers when we are not considering the oulier in this for the later.
+
+The second data set we are going to work with talks about African Crises focusing on financial
+instability of 13 different African countries from 1860 to 2014,made up of 14 columns and 1,059 observations which include 3categorical variable and 11 quantitative variables.
+
+```{r message=FALSE,results="hide"}
+Afrik <- read_csv("C:/Users/soar/Desktop/african_crises.csv")
+glimpse(Afrik)
+```
+
+```{r message=FALSE,warning=FALSE,echo=FALSE}
+Afrik_Ind <- Afrik %>% 
+select(country, year, independence) %>% 
+filter(independence == 1) %>% 
+group_by(country) %>% 
+slice(1) %>% 
+select(-independence) %>% 
+arrange(desc(year))
+Afrik_Ind
+ggplot(Afrik,aes(x = country, y= year,fill = country)) + 
+geom_boxplot()+coord_flip()
+
+```
+Egypt was the first and Angola was the last to gain their Independence
+Next we visualize each country's cases and their crises
+```{r message=FALSE,warning=FALSE,echo=FALSE}
+Afrik %>% 
+  mutate(systemic_crisis = ifelse(systemic_crisis == 1, 'yes', 'no')) %>% 
+  group_by(country) %>% 
+  count(systemic_crisis) %>% 
+  spread(systemic_crisis, n) %>% 
+  mutate(yes = ifelse(is.na(yes), 0, yes)) %>% 
+  gather('no', 'yes', key = 'systemic_crisis', value = "cases") %>% 
+  data.frame() %>% 
+  ggplot(aes(x = reorder(country, +cases), y = cases, fill = systemic_crisis)) + geom_col(position = 'dodge') +
+  
+  labs(x = 'Country', y = 'Count by cases',
+       title = 'Numbers of systemic crisis by each country from (1860-2014)')+
+  theme(axis.text.x = element_text(angle=90, vjust=0.6)) + 
+  scale_fill_discrete(name = "Systemic Crisis", labels = c('No', 'Yes')) 
+  
+```
+The graph shows each  cases count and whether it led to a systematic crises or not
+From the graph,Egypt has the highest financial cases  but Central African Republic and Zimbabwe 
+has the highest systematic crises.The graph shows how each country manages their cases.
+ 
+```{r message=FALSE,warning=FALSE,echo=FALSE}
+Afrik %>% 
+    mutate(inflation_crises = ifelse(inflation_crises == 1, 'yes', 'no')) %>% 
+    group_by(country) %>% 
+    count(inflation_crises) %>% 
+    spread(inflation_crises, n)  %>% 
+    mutate(percentyesinf_crises = (yes/(yes+no)))%>%
+    ggplot(aes(x = reorder(country, +percentyesinf_crises), y = percentyesinf_crises)) + 
+    geom_point(stat = "identity", size = 4, pch = 21, fill = "blue")+
+      geom_bar(stat = "identity", width = 0.075)+ 
+    scale_y_continuous(labels=scales::percent) + theme_bw() + theme(legend.position="none") +
+    labs(x = 'Country', y = '', title = 'Inflation rate percent for each country',
+         subtitle = 'Period analysed (1860-2014)') +
+    coord_flip()
+    
+```
+I took the count of yes and no inflation crises for each country,then calculated the 
+fraction of yes for each country trying to find out country with highest  inflation crises
+then converted to percentage,from the plot,Angola has the highest inflation rate and
+South Africa has the lowest
+
+Lets analyze how this affected their exchange rate in dollars
+
+```{r message=FALSE,warning=FALSE,echo=FALSE}
+Afrik %>% 
+select(country,exch_usd)%>%
+group_by(country) %>% 
+summarise(min_exch_usd = min(exch_usd),
+          max_exch_usd = max(exch_usd))%>% 
+arrange(desc(max_exch_usd)) %>%
+ggplot(aes(x = reorder(country, + max_exch_usd), y = max_exch_usd, fill = country)) + geom_col() +
+theme_bw() + theme(legend.position="none") +
+labs(x = 'Country', y = '', 
+       title = 'Maximum exchange rate(in usd) of each country',
+       subtitle = 'Period analysed (1860-2014)') + coord_flip()
+```
+From the graph it can be seen that Central African Republic has the maximum exchange rate 
+Zambia has the minimum exchange rate
+In carrying out Exploratory data analysis on African banking crises and visualizing the graph   
+We can conclude that countries with highest systematic crises have the highest exchange rate
+We can say that systematic crises have a role to play in exchange rate.
+
+The final data set we will visualise is talking about the world and its ecosystem,how different
+countries interact with thier ecosystem and how their activities plays a role in affecting
+the ecosystem.
+Data set consist of 21 variables with 188 observations.We have 4 categorical variables and
+17 quantitative variables
+First we define some terms or variables used
+
+Ecological footprint: simply put this measures how fast we consume resources and generate waste
+compared to how fast nature can absorb our waste and generate new resources.
+This ecological footprint is composed of six components
+Built up land,Fishing ground,Forest,Grazing land,Crop land and carbon footprint.
+As we dive deep into visualization we can define new terms.
+```{r message=FALSE,results="hide",warning=FALSE}
+ecology <- read_csv("C:/Users/soar/Desktop/countries.csv")
+glimpse(ecology)
+```
+
+```{r message=FALSE,warning=FALSE,echo=FALSE}
+ecology %>%
+  group_by(Country) %>%
+  summarise(EcoFootprintMedian = median(`Total Ecological Footprint`, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(Country = reorder(Country,EcoFootprintMedian)) %>%
+  arrange(desc(EcoFootprintMedian)) %>%
+  head(10)%>%
+  ggplot(aes(x = Country,y = EcoFootprintMedian)) +
+  geom_bar(stat='identity', fill = "red") +
+    geom_text(aes(x = Country, y = 1, label = paste0("(",EcoFootprintMedian,")",sep="")),
+              hjust=0, vjust=.5, size = 4, colour = "black",
+              fontface = 'italic') +
+    labs(x = 'Countries', 
+         y = 'Ecological Footprint', 
+         title = 'Countries With Highest EcoFootprint(gha)') +
+    coord_flip() +  theme(legend.position = "") 
+```
+wE can view the first 10 countries with the highest footprint this means the consume much more natural resources than they produce and much energy than they absorb.
+Reordering the countries by region
+```{r message=FALSE,warning=FALSE,echo=FALSE}
+ecology %>% group_by(Region) %>% tally() %>% 
+  ggplot(aes(x = reorder(Region, n), n)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  theme() +
+  ggtitle("Number of countries by regions") +
+  geom_text(aes(x = Region, y = 1, label = paste0(n)),
+            hjust=0.15, vjust=.5, size = 4, colour = 'black',
+            fontface = 'bold') +
+  coord_flip() 
+```
+Africa has the highest number of countries in its region
+```{r message=FALSE,warning=FALSE,echo=FALSE}
+ecology %>% group_by(Region) %>% summarise(Total = sum(`Population (millions)`)) %>% 
+  ggplot(aes(Region, Total, fill = Region)) + geom_histogram(stat = "identity") +
+  theme() +
+  ggtitle("Total population per Region") +
+  theme(axis.text.x = element_text(angle = 20, vjust = 0.65))
+```
+From the plot Asia-pacific region has the highest population
+Does their population affect their ecological footprint?Lets find out with further visuals
+ 
+
+Comparing biocapacities across Regions
+Bio-capacity represents the productivity of its ecological 
+assets (including cropland etc).
+```{r message=FALSE,warning=FALSE,echo=FALSE}
+ggplot(ecology, aes(x = Region, y = ecology$`Total Biocapacity`, fill = Region))+
+geom_boxplot()+scale_y_log10()+
+ggtitle("Comparing Total Biocapacity across Regions") +
+geom_jitter(alpha =0.7) + ylab("Biocapacity") + theme(legend.position = "")+
+coord_flip()
+```
+
+North America has the highest Bio-capacity,followed by European union and Northern/Eastern 
+Europe, Middle East and Central Asia has the lowest Biocapacity followed by Africa.
+does this Bio-capacity affect their Human Development Index? Lets find out
+```{r message=FALSE,warning=FALSE,echo=FALSE}
+by_region <- ecology %>%
+  group_by(HDI, Region) %>%
+  summarize(BiocapacityMedian = median(`Total Biocapacity`),
+            MedianPop = median(`Population (millions)`))
+ggplot(by_region, aes(x = HDI, y = BiocapacityMedian, color = Region, size = MedianPop)) +
+geom_point(alpha=0.7) + ylab("Biocapacity") + 
+labs(title="Biocapacity Vs Human Development Index") +
+scale_color_manual(values = c("blue", "green", "red", "orange", "purple" ,"black" ,"pink")) +
+xlab("Human Development") 
+#Taking the median of Biocapacity inorder to consider outliers
+
+```
+
+```{r message=FALSE,warning=FALSE,echo=FALSE}
+ggplot(ecology, aes(x = Region, y = ecology$HDI, fill = Region))+
+  geom_boxplot()+scale_y_log10()+
+  ggtitle("Comparing Human development across Regions") +
+  geom_jitter(alpha =0.7) + ylab("HDI") + theme(legend.position = "")+
+  coord_flip()
+```
+Just like we suspected North America and European union had the highest Biocapacity in our
+Previous plot and the highest Human Development Index.Africa is the least considering the fact that their biocapicity is the least.
+
+
+#Distribution of each Eco-Footprint variable
+```{r message=FALSE,warning=FALSE,echo=FALSE}
+ecologya <-ecology
+ecologya <- ecologya %>% gather(Biocapacity, Land, 7:11)
+
+ggplot(ecologya, aes(x = HDI , `Total Biocapacity`, color = Region)) +
+geom_point(alpha=0.7) +
+facet_wrap(~Biocapacity) + scale_y_log10() +labs(title = "Distribution of Eco-Footprint Components by Regions") +
+theme(legend.position = "bottom") + 
+scale_color_manual(values = c("forestgreen", "darkviolet", "gold", "blue", "brown" ,"red" ,"black"))
+```
+Considering each footprint,the european union has been consistent in maintaining high
+Biocapacity,we can see outliers from Latin-American region
+This is because two countries from that region have the highest Biocapacity among all the foot
+print components,North/Eastern region takes the lead in Human Development.
+
+Sourcing for the longitude and latitudes of each country involved
+```{r include=FALSE }
+nameCountry<-c("Afghanistan","Albania","Algeria","Angola","Antigua and Barbuda","Argentina","Armenia","Aruba","Australia","Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Benin","Bermuda","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","British Virgin Islands","Brunei Darussalam","Bulgaria","Burkina Faso","Burundi","Cabo Verde","Cambodia","Cameroon","Canada","Cayman Islands","Central African Republic","Chad","Chile","China","Colombia","Comoros","Congo","Congo, Democratic Republic of","Costa Rica","CÃ´te d'Ivoire","Croatia","Cuba","Cyprus","Czech Republic","Denmark","Djibouti","Dominica","Dominican Republic","Ecuador","Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Ethiopia","Fiji","Finland","France","French Guiana","French Polynesia","Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guadeloupe","Guatemala","Guinea","Guinea-Bissau","Guyana","Haiti","Honduras","Hungary","India","Indonesia","Iran, Islamic Republic of","Iraq","Ireland","Israel","Italy","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Korea, Democratic People's Republic of","Korea, Republic of","Kuwait","Kyrgyzstan","Lao People's Democratic Republic","Latvia","Lebanon","Lesotho","Liberia","Libyan Arab Jamahiriya","Lithuania","Luxembourg","Macedonia TFYR","Madagascar","Malawi","Malaysia","Mali","Martinique","Mauritania","Mauritius","Mexico","Moldova","Mongolia","Montenegro","Montserrat","Morocco","Mozambique","Myanmar","Namibia","Nauru","Nepal","Netherlands","New Caledonia","New Zealand","Nicaragua","Niger","Nigeria","Norway","Oman","Pakistan","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Qatar","RÃ©union","Romania","Russian Federation","Rwanda","Saint Kitts and Nevis","Saint Lucia","Saint Vincent and Grenadines","Samoa","Sao Tome and Principe","Saudi Arabia","Senegal","Serbia","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia","South Africa","Spain","Sri Lanka","Suriname","Swaziland","Sweden","Switzerland","Syrian Arab Republic","Tajikistan","Tanzania, United Republic of","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan","Uganda","Ukraine","United Kingdom","United Arab Emirates","United States of America","Uruguay","Uzbekistan","Venezuela, Bolivarian Republic of","Viet Nam","Wallis and Futuna Islands","Yemen","Zambia","Zimbabwe")
+
+geoLong<-c(67.70995,20.16833,1.659626,17.87389,-61.79643,-63.61667,45.03819,-69.96834,133.7751,14.55007,47.57693,-77.39628,50.5577,90.35633,-59.5432,27.95339,4.469936,2.315834,-64.7505,90.4336,-63.58865,17.67908,24.68487,-51.92528,-64.63997,114.7277,25.48583,-1.561593,29.91889,-23.60519,104.991,12.35472,-106.3468,-81.2546,20.93944,18.73221,-71.54297,104.1954,-74.29733,43.3333,21.75866,21.75866,-83.75343,-5.54708,15.2,-77.78117,33.42986,15.47296,9.501785,42.59027,-61.37098,-70.16265,-78.18341,30.8025,-88.89653,10.26789,39.78233,25.01361,40.48967,178.065,25.74815,2.213749,-53.12578,-149.4068,11.60944,-15.31014,-82.90008,10.45153,-1.023194,21.82431,-61.679,-61.551,-90.23076,-9.696645,-15.18041,-58.93018,-72.28521,-86.24191,19.5033,78.96288,113.9213,53.68805,43.67929,-7.692054,34.85161,12.56738,-77.29751,138.2529,36.23841,66.92368,37.90619,127.5101,127.7669,47.48177,74.7661,102.4955,24.60319,35.86228,28.23361,-9.429499,17.22833,23.88127,6.129583,NA,46.86911,34.30152,101.9758,-3.996166,-61.02417,-10.94083,57.55215,-102.5528,28.36989,103.8467,19.37439,-62.18737,-7.09262,35.52956,95.95597,18.49041,166.9315,84.12401,5.291266,165.618,174.886,-85.20723,8.081666,8.675277,8.468946,55.97541,69.34512,-79.51987,143.9555,-58.44383,-75.01515,121.774,19.14514,-8.224454,51.18388,55.53638,24.96676,105.3188,29.87389,-62.783,-60.97889,-61.19716,-172.1046,6.613081,45.07916,-14.45236,21.00586,-11.77989,103.8198,19.69902,14.99546,160.1562,46.19962,22.93751,-3.74922,80.7718,-56.02778,31.46587,18.6435,8.227512,38.99681,71.27609,34.88882,100.9925,125.7275,0.824782,-175.1982,-61.2225,9.537499,35.24332,59.55628,32.29028,31.16558,-3.435973,53.84782,-95.71289,-55.76584,64.58526,-66.58973,108.2772,-178.1165,48.51639,27.84933,29.15486)
+
+geoLat<-c(33.93911,41.15333,28.03389,-11.20269,17.06082,-38.4161,40.0691,12.52111,-25.2744,47.51623,40.1431,25.03428,26.0667,23.68499,13.19389,53.70981,50.50389,9.30769,32.3078,27.51416,-16.29015,43.91589,-22.32847,-14.235,18.42069,4.535277,42.73388,12.23833,-3.373056,15.12014,12.56568,7.369722,56.13037,19.3133,6.611111,15.45417,-35.67515,35.86166,4.570868,-11.6455,-4.038333,-4.038333,9.748917,7.539989,45.1,21.52176,35.12641,49.81749,56.26392,11.82514,15.415,18.73569,-1.831239,26.82055,13.79419,1.650801,15.17938,58.59527,9.145,-17.71337,61.92411,46.22764,3.933889,-17.67974,-0.803689,13.44318,32.16562,51.16569,7.946527,39.07421,12.1165,16.265,15.78347,9.945587,11.80375,4.860416,18.97119,15.2,47.16249,20.59368,-0.789275,32.42791,33.22319,53.14237,31.04605,41.87194,18.10958,36.20482,30.58516,48.01957,-0.023559,40.33985,35.90776,29.31166,41.20438,19.85627,56.87964,33.85472,-29.60999,6.428055,26.3351,55.16944,49.81527,NA,-18.76695,-13.25431,4.210484,17.57069,14.64153,21.00789,-20.3484,23.6345,47.41163,46.8625,42.70868,16.7425,31.7917,-18.66569,21.91622,-22.95764,-0.522778,28.39486,52.13263,-20.90431,-40.90056,12.86542,17.60779,9.081999,60.47202,21.47353,30.37532,8.982379,-6.314993,-23.4425,-9.189967,12.87972,51.91944,39.39987,25.35483,-21.11514,45.94316,61.52401,-1.940278,17.35782,13.90944,13.25282,-13.75903,0.18636,23.88594,14.4974,44.01652,8.460555,1.352083,48.66903,46.15124,-9.64571,5.152149,-30.55948,40.46367,7.873054,3.919305,-26.5225,60.12816,46.81819,34.80207,38.86103,-6.369028,15.87003,-8.874217,8.619543,-21.17899,10.6918,33.88692,38.96375,38.96972,1.373333,48.37943,55.37805,23.42408,37.09024,-32.52278,41.37749,6.42375,14.05832,-14.2938,15.55273,-13.1339,-19.01544)
+
+#there was one country for which the geolocations where not found : Macedonio
+countryCodes<-data.frame("Country"=nameCountry,"Longitude"=geoLong,"Latitude"=geoLat)
+countryCodes$Longitude[is.na(countryCodes$Longitude)] <- 41.5
+countryCodes$Latitude[is.na(countryCodes$Latitude)] <- 22
+```
+
+```{r error=TRUE,warning=FALSE,echo=FALSE,message=FALSE}
+bioCap<-ecology %>% select(Country,`Population (millions)`,HDI,`GDP per Capita`,`Biocapacity Deficit or Reserve`,`Data Quality`)
+colnames(bioCap)<-c('Country','Population','HDI','GDP','BioCapacity','DataQuality')
+summary<-bioCap %>% select(Country, BioCapacity)
+
+der<-merge(x=summary,y=countryCodes,by='Country',all.x=TRUE)
+der$Status<-ifelse(der$BioCapacity>0,'Reserve','Deficit')
+map<-ggplot() + borders("world",colour="grey75",fill="lightgreen")
+REDE<-map + geom_point(data=der,aes(x=Longitude, y=Latitude,size=abs(BioCapacity),color=Status),alpha=.65) +
+   
+  annotate(geom = "text", x = -90, y = 26, label = "Gulf of Mexico", 
+           fontface = "italic", color = "grey22", size = 3)+
+  xlab('Longitude') + ylab('Latitude') +ggtitle("Map Showing Areas with Biocapacity Deficit and Reserve",subtitle = paste0("(", length(unique(ecology$Country)), " countries)"))
+theme(legend.text=element_text(size=12),legend.position="top") + 
+  labs(size="BioCapacity index") + 
+  scale_color_manual(values = c("blue", "brown"))
+REDE
+```
+The map shows regions with bio-capacity Deficit and Reserve.
+Regions on Reserve : countries of South-America, countries in mid to south Africa, Oceania, North Europe
+Regions on Deficit : European Union, East Europe, USA, North Africa, Middle East, Asia
+Conclusion:
+
+From the map we can see that the ratio of Deficit per Region is bigger than that of reserve a lot of improvement needs to be done.
+Importance of this ecological footprint:
+
+It helps individuals to understand their impact on the planet
+
+It helps leaders to optimize public project.
+When a region runs a biocapacity deficit. Its demand for the goods and services that land and seas can provide—fruits and vegetables, meat, fish, wood, cotton for clothing, and carbon dioxide absorption—exceeds what the region’s ecosystems can regenerate. 
+If a region’s biocapacity exceeds its Ecological Footprint, it has a biocapacity reserve.
+
+The longitude and latitude of this map was gotten from downloaded csv file in the internet for all countries longitude and latitude.I attached the file with other submitted files
+
+```{r warning=FALSE,echo=FALSE,message=FALSE}
+bioCapcrop <- ecology %>% select(Country,`Population (millions)`,HDI,`GDP per Capita`,`Cropland Footprint`, `Grazing Footprint`, `Forest Footprint`, `Fish Footprint`, Cropland, `Grazing Land`, `Forest Land`,`Fishing Water`) %>% na.omit() %>% 
+  mutate(Biocapacity_gropLand = Cropland - `Cropland Footprint`)
+bioCapCrop1<-merge(x=bioCapcrop,y=countryCodes,by='Country',all.x=TRUE)
+bioCapCrop1$gropStatus<-ifelse(bioCapCrop1$Biocapacity_gropLand>0,'Reserve','Deficit')
+map<-ggplot() + borders("world",colour="grey75",fill="lightgreen")
+gropLandMap <- map + geom_point(data=bioCapCrop1,aes(x=Longitude, y=Latitude,size=abs(Biocapacity_gropLand),color=gropStatus),alpha=.65) +
+  xlab('Longitude') + ylab('Latitude') +
+  theme(legend.text=element_text(size=12),legend.position="top") + 
+  labs(size="BioCapacity cropland index") + 
+  scale_color_manual(values = c("blue", "brown"))
+gropLandMap
+```
+                         REFERENCE
+Global Footprint Network.(2003-2021).Ecological Footprint - Global Footprint Network.Retrieved from https://www.footprintnetwork.org/our-work/ecological-footprint/#
+
+“Global Ecological Footprint.” n.d. Accessed March 7, 2021. https://kaggle.com/jonathanbouchet/global-ecological-footprint.
+
+Top 50 ggplot2 Visualizations - The Master List (With Full R Code)
+http://r-statistics.co/Top50-Ggplot2-Visualizations-MasterList-R-Code.html
+[Accessed: 24th February 2021]
+
+```{r include=TRUE}
+
+```
+
